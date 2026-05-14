@@ -7,7 +7,7 @@ An AI-powered healthcare application that predicts diabetes risk levels and simu
 # 🚀 Live Demo
 
 🌐 Streamlit App:  
-Add your deployed Streamlit link here
+https://diabecare-ai-hfnkum47fqwj6wnyjsvlbt.streamlit.app/
 
 ---
 

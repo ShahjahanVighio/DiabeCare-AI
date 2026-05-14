@@ -2,12 +2,15 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import joblib
+import xgboost as xgb
 
 # ==========================================================
 # PAGE CONFIG
 # ==========================================================
-st.set_page_config(page_title="DiabeCare AI: Clinical Risk Assessment System", layout="wide")
+st.set_page_config(
+    page_title="DiabeCare AI: Clinical Risk Assessment System",
+    layout="wide"
+)
 
 # ==========================================================
 # THEME TOGGLE (DARK/LIGHT)
@@ -16,7 +19,6 @@ st.sidebar.header("⚙ Settings")
 theme_mode = st.sidebar.toggle("🌙 Dark Mode", value=True)
 
 if theme_mode:
-    # DARK MODE CSS
     st.markdown("""
         <style>
         .stApp {
@@ -38,7 +40,6 @@ if theme_mode:
     """, unsafe_allow_html=True)
 
 else:
-    # LIGHT MODE CSS
     st.markdown("""
         <style>
         .stApp {
@@ -60,9 +61,10 @@ else:
     """, unsafe_allow_html=True)
 
 # ==========================================================
-# LOAD MODEL
+# LOAD MODEL (XGBOOST JSON)
 # ==========================================================
-model = joblib.load("diabetes_model2_v2.pkl")
+model = xgb.XGBClassifier()
+model.load_model("xgb_model.json")
 
 # ==========================================================
 # TITLE
@@ -73,7 +75,7 @@ st.write("Enter patient data to predict diabetes risk and simulate future trends
 # ==========================================================
 # INPUT PANEL (ONLY REQUIRED INPUTS)
 # ==========================================================
-st.sidebar.header("Patient Input Panel")
+st.sidebar.header("🧾 Patient Input Panel")
 
 age = st.sidebar.number_input("Age (years)", min_value=1, max_value=120, value=35)
 
@@ -94,12 +96,14 @@ activity = st.sidebar.number_input(
 )
 
 # ==========================================================
-# CREATE INPUT DATAFRAME
+# CREATE INPUT DATAFRAME (MODEL NEEDS FULL FEATURES)
 # ==========================================================
 patient = pd.DataFrame([{
     "Age": age,
     "BMI": bmi,
     "FastingGlucose": glucose,
+
+    # Default clinical values (fixed, because UI only needs 4 inputs)
     "SystolicBP": 120,
     "DiastolicBP": 80,
     "LDL": 110,
@@ -112,13 +116,19 @@ patient = pd.DataFrame([{
 # ==========================================================
 # MODEL PREDICTION
 # ==========================================================
-prediction = model.predict(patient)[0]
+prediction = int(model.predict(patient)[0])
+probabilities = model.predict_proba(patient)[0]
 
-risk_labels = {0: "Normal", 1: "Prediabetes", 2: "Diabetes"}
+risk_labels = {
+    0: "Normal",
+    1: "Prediabetes",
+    2: "Diabetes"
+}
 risk = risk_labels[prediction]
 
 # ==========================================================
-# HbA1c ESTIMATION (Clinical Approximation)
+# HbA1c ESTIMATION (Clinical Approximation Formula)
+# HbA1c ≈ (Avg Glucose + 46.7) / 28.7
 # ==========================================================
 predicted_hba1c = (glucose + 46.7) / 28.7
 
@@ -136,7 +146,19 @@ with col2:
     st.metric("Predicted Risk Level", risk)
 
 # ==========================================================
-# DIGITAL TWIN SIMULATION FUNCTION
+# PROBABILITY DISPLAY
+# ==========================================================
+st.subheader("📌 Prediction Confidence")
+
+prob_df = pd.DataFrame({
+    "Class": ["Normal", "Prediabetes", "Diabetes"],
+    "Probability": probabilities
+})
+
+st.bar_chart(prob_df.set_index("Class"))
+
+# ==========================================================
+# DIGITAL TWIN SIMULATION
 # ==========================================================
 st.header("📈 Graph Panel: Trend Visualization (90 Days Simulation)")
 
@@ -192,7 +214,7 @@ g_med, h_med = simulate(glucose, bmi, activity, "Medication")
 # ==========================================================
 # GLUCOSE GRAPH
 # ==========================================================
-st.subheader("Glucose Trend (mg/dL)")
+st.subheader("🩸 Glucose Trend (mg/dL)")
 
 fig1, ax1 = plt.subplots(figsize=(10, 4))
 
@@ -211,7 +233,7 @@ st.pyplot(fig1)
 # ==========================================================
 # HbA1c GRAPH
 # ==========================================================
-st.subheader("HbA1c Trend (%)")
+st.subheader("🧪 HbA1c Trend (%)")
 
 fig2, ax2 = plt.subplots(figsize=(10, 4))
 
@@ -231,4 +253,4 @@ st.pyplot(fig2)
 # ==========================================================
 # FINAL MESSAGE
 # ==========================================================
-st.success("✅ DiabeCare AI: Clinical Risk Assessment System Completed Successfully")
+st.success("✅ DiabeCare AI Completed Successfully")

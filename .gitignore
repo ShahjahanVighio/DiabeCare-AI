@@ -1,0 +1,12 @@
+# Environments & Caches
+venv/
+.venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+.chrome_tmp/
+.ipynb_checkpoints/
+*.crdownload
+.DS_Store
+Thumbs.db
